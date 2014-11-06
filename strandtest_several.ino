@@ -14,6 +14,7 @@ Adafruit_NeoPixel strip2 = Adafruit_NeoPixel(14, 4, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel strip3 = Adafruit_NeoPixel(14, 5, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel strip4 = Adafruit_NeoPixel(14, 6, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel strip5 = Adafruit_NeoPixel(14, 7, NEO_GRB + NEO_KHZ800);
+uint32_t secondColor; // the color used for the second 7 lights
 
 void setup() {
   strip1.begin();
@@ -26,62 +27,42 @@ void setup() {
   strip4.show(); // Initialize all pixels to 'off'
   strip5.begin();
   strip5.show(); // Initialize all pixels to 'off'
+  secondColor = strip1.Color(150, 150, 150); // color for all second strips
 }
+
+#define VOLTCOEFF 13.179  // larger number interprets as lower voltage
+#define AMPCOEFF 8.0682 // 583 - 512 = 71; 71 / 8.8 amps = 8.0682
+#define AMPOFFSET 512.0 // when current sensor is at 0 amps this is the ADC value
 
 void loop() {
   // Some example procedures showing how to display to the pixels:
-  colorWipe(strip1,strip1.Color(255, 105, 0), 5); // Orange
-  colorWipe(strip2,strip2.Color(255, 255, 0), 5); // Yellow
-  colorWipe(strip3,strip3.Color(0, 255, 0), 5); // Green
-  colorWipe(strip4,strip4.Color(0, 0, 255), 5); // Blue
-  colorWipe(strip5,strip5.Color(80, 0, 80), 5); // Violet
+  float voltage = analogRead(A0) / VOLTCOEFF;
+  int volts = (int)(voltage / 25);
+  int amps = (int)((analogRead(A1) - AMPOFFSET) / AMPCOEFF);
+  colorBars(strip1,strip1.Color(255, 105, 0), amps, volts); // Orange
+  amps = (int)((analogRead(A2) - AMPOFFSET) / AMPCOEFF);
+  colorBars(strip2,strip2.Color(255, 255, 0), amps, volts); // Yellow
+  amps = (int)((analogRead(A3) - AMPOFFSET) / AMPCOEFF);
+  colorBars(strip3,strip3.Color(0, 255, 0), amps, volts); // Green
+  amps = (int)((analogRead(A4) - AMPOFFSET) / AMPCOEFF);
+  colorBars(strip4,strip4.Color(0, 0, 255), amps, volts); // Blue
+  amps = (int)((analogRead(A5) - AMPOFFSET) / AMPCOEFF);
+  colorBars(strip5,strip5.Color(80, 0, 80), amps, volts); // Violet
 }
 
-// Fill the dots one after the other with a color
-void colorWipe(Adafruit_NeoPixel strip, uint32_t c, uint8_t wait) {
-  for(uint16_t i=0; i<strip.numPixels(); i++) {
-      strip.setPixelColor(i, c);
-      strip.show();
-      delay(wait);
-  }
-}
-
-void rainbow(Adafruit_NeoPixel strip, uint8_t wait) {
-  uint16_t i, j;
-
-  for(j=0; j<256; j++) {
-    for(i=0; i<strip.numPixels(); i++) {
-      strip.setPixelColor(i, Wheel(strip,(i+j) & 255));
-    }
-    strip.show();
-    delay(wait);
-  }
-}
-
-// Slightly different, this makes the rainbow equally distributed throughout
-void rainbowCycle(Adafruit_NeoPixel strip, uint8_t wait) {
-  uint16_t i, j;
-
-  for(j=0; j<256*5; j++) { // 5 cycles of all colors on wheel
-    for(i=0; i< strip.numPixels(); i++) {
-      strip.setPixelColor(i, Wheel(strip,((i * 256 / strip.numPixels()) + j) & 255));
-    }
-    strip.show();
-    delay(wait);
-  }
-}
-
-// Input a value 0 to 255 to get a color value.
-// The colours are a transition r - g - b - back to r.
-uint32_t Wheel(Adafruit_NeoPixel strip, byte WheelPos) {
-  if(WheelPos < 85) {
-   return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-  } else if(WheelPos < 170) {
-   WheelPos -= 85;
-   return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+// fourteen LEDs arranged as two bars of 7.
+// give this function a color, and two numbers from 0 to 7 (how many to light up)
+void colorBars(Adafruit_NeoPixel strip, uint32_t color, uint8_t first, uint8_t second) {
+  for(uint16_t i=0; i<7; i++) if (i < first) { // if the pixel should be "lit up"
+    strip.setPixelColor(i, color); // light up the pixel with "color"
   } else {
-   WheelPos -= 170;
-   return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+    strip.setPixelColor(i, strip.Color(10, 10, 10)); // otherwise, a dull white
   }
-}
 
+  for(uint16_t i=7; i<14; i++) if (i < second + 7) { // if the pixel should be "lit up"
+    strip.setPixelColor(i, secondColor); // light up the pixel with "secondColor"
+  } else {
+    strip.setPixelColor(i, strip.Color(10, 10, 10)); // otherwise, a dull white
+  }
+  strip.show(); // make it happen
+}
