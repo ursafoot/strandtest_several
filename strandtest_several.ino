@@ -17,6 +17,8 @@ Adafruit_NeoPixel strip5 = Adafruit_NeoPixel(14, 7, NEO_GRB + NEO_KHZ800);
 uint32_t secondColor; // the color used for the second 7 lights
 
 void setup() {
+  Serial.begin(57600);
+  Serial.println(__FILE__);
   strip1.begin();
   strip1.show(); // Initialize all pixels to 'off'
   strip2.begin();
@@ -28,6 +30,11 @@ void setup() {
   strip5.begin();
   strip5.show(); // Initialize all pixels to 'off'
   secondColor = strip1.Color(150, 150, 150); // color for all second strips
+  for( int cd=5; cd; cd-- ) {
+    Serial.print(cd);
+    delay(1000);
+  }
+  Serial.println("\nDone with setup");
 }
 
 #define VOLTCOEFF 13.179  // larger number interprets as lower voltage
@@ -35,6 +42,7 @@ void setup() {
 #define AMPOFFSET 512.0 // when current sensor is at 0 amps this is the ADC value
 
 void loop() {
+  Serial.println("Top of loop");
   // Some example procedures showing how to display to the pixels:
   float voltage = analogRead(A0) / VOLTCOEFF;
   int volts = (int)(voltage / 25);
@@ -48,11 +56,12 @@ void loop() {
   colorBars(strip4,strip4.Color(0, 0, 255), amps, volts); // Blue
   amps = (int)((analogRead(A5) - AMPOFFSET) / AMPCOEFF);
   colorBars(strip5,strip5.Color(80, 0, 80), amps, volts); // Violet
+  Serial.println("Bottom of loop");
 }
 
 // fourteen LEDs arranged as two bars of 7.
 // give this function a color, and two numbers from 0 to 7 (how many to light up)
-void colorBars(Adafruit_NeoPixel strip, uint32_t color, uint8_t first, uint8_t second) {
+void colorBars(Adafruit_NeoPixel& strip, uint32_t color, uint8_t first, uint8_t second) {
   for(uint16_t i=0; i<7; i++) if (i < first) { // if the pixel should be "lit up"
     strip.setPixelColor(i, color); // light up the pixel with "color"
   } else {
